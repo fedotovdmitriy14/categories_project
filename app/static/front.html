@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Category</title>
+</head>
+<body>
+    <h1>Create New Category</h1>
+    <form id="categoryForm">
+        <!-- Parent ID input (optional) -->
+        <label for="parent_id">Parent ID (optional):</label><br>
+        <input type="number" id="parent_id" name="parent_id"><br>
+        <!-- Name input (required) -->
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+        <!-- Submit button -->
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        document.getElementById('categoryForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('http://0.0.0.0:8080/api/v1/categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create category');
+                }
+
+                alert('Category created successfully!');
+                form.reset();
+            } catch (error) {
+                console.error('Error creating category:', error.message);
+                alert('Failed to create category');
+            }
+        });
+    </script>
+</body>
+</html>
