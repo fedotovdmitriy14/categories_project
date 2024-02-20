@@ -84,6 +84,11 @@ class BaseService(AsyncSearchEngine):
     def get_one(self, item_id: int, sql_model=Categories):
         return self.db.query(Categories).filter(Categories.id == item_id).first()
 
+    async def get_one_from_redis(self, item_id: int, pydantic_model=Category):
+        item = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
+        print(f'{item=}')
+        return item
+
     def get_all(self):
         return self.db.query(Categories).all()
 

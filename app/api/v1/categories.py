@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Body, Path
 
+from app.schemas.categories import Category
 from app.services.categories import get_base_service, BaseService
 
 router = APIRouter()
@@ -29,6 +30,19 @@ async def update_category(
 ) -> Dict[str, str]:
     await base_service.update(name=name, item_id=id_)
     return {'message': 'ok'}
+
+
+@router.get(
+    '/{id}',
+    response_model=Category,
+)
+async def get_one_category(
+    base_service: BaseService = Depends(get_base_service),
+    id_: int = Path(alias='id'),
+):
+    res = await base_service.get_one_from_redis(item_id=id_)
+    print(f'{res=}')
+    return res
 
 
 @router.post(
