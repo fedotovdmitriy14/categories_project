@@ -69,5 +69,7 @@ async def save_to_redis(
 @router.get(
     '/',
 )
-async def get_categories():
-    pass
+async def get_all_categories(
+    base_service: BaseService = Depends(get_base_service),
+):
+    return await base_service.get_all_from_redis()
