@@ -11,11 +11,17 @@ class RedisStorage(AbstractStorage):
     def __init__(self, redis: Redis):
         self.redis = redis
 
-    async def get_from_cache(self, item_id: int):
+    async def get_from_cache(self, item_id: int, model):
         """пробуем получить запись по id из кеша"""
-        pass
+        if data := await self.redis.get(key=item_id):
+            return model.parse_raw(data)
+        return None
 
     async def put_to_cache(self, validated_data, item_id: int) -> None:
         """кладем запись в кеш"""
         data_json = json.dumps(validated_data.dict(), default=custom_json_encoder).encode('utf-8')
         await self.redis.set(item_id, data_json)
+
+    async def delete_from_cache(self, item_id: int) -> None:
+        """удаляем из кэша"""
+        await self.redis.delete(item_id)

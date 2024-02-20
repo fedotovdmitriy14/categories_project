@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Body, Path
 
+from app.schemas.categories import Category
 from app.services.categories import get_base_service, BaseService
 
 router = APIRouter()
@@ -28,6 +29,40 @@ async def update_category(
     id_: int = Path(alias='id'),
 ) -> Dict[str, str]:
     await base_service.update(name=name, item_id=id_)
+    return {'message': 'ok'}
+
+
+@router.get(
+    '/{id}',
+    response_model=Category,
+)
+async def get_one_category(
+    base_service: BaseService = Depends(get_base_service),
+    id_: int = Path(alias='id'),
+):
+    res = await base_service.get_one_from_redis(item_id=id_)
+    print(f'{res=}')
+    return res
+
+
+@router.delete(
+    '/{id}',
+)
+async def delete_category(
+    base_service: BaseService = Depends(get_base_service),
+    id_: int = Path(alias='id'),
+):
+    await base_service.delete(item_id=id_)
+    return {'message': 'ok'}
+
+
+@router.post(
+    '/redis',
+)
+async def save_to_redis(
+    base_service: BaseService = Depends(get_base_service),
+) -> Dict[str, str]:
+    await base_service.save_categories_to_redis()
     return {'message': 'ok'}
 
 

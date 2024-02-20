@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from functools import lru_cache
 from typing import Optional
@@ -12,6 +13,9 @@ from app.redis import get_redis
 from app.schemas.categories import Category
 from app.services import AsyncSearchEngine
 from app.services.redis_storage import RedisStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseService(AsyncSearchEngine):
@@ -83,6 +87,48 @@ class BaseService(AsyncSearchEngine):
 
     def get_one(self, item_id: int, sql_model=Categories):
         return self.db.query(Categories).filter(Categories.id == item_id).first()
+
+    async def get_one_from_redis(self, item_id: int, pydantic_model=Category):
+        item = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
+        print(f'{item=}')
+        return item
+
+    def get_all(self):
+        return self.db.query(Categories).all()
+
+    async def save_categories_to_redis(self, pydantic_model=Category):
+        categories = self.get_all()
+
+        for category in categories:
+            parent_data = pydantic_model.from_orm(category)
+            await self.redis_storage.put_to_cache(
+                validated_data=parent_data,
+                item_id=parent_data.id,
+            )
+
+    async def delete(self, item_id: int, pydantic_model=Category):
+        children_ids = await self.get_all_children_ids(item_id=item_id, pydantic_model=Category)
+        for child_id in children_ids:
+            self.db.query(Categories).filter(Categories.id == child_id).delete()
+        self.db.commit()
+
+        for child_id in children_ids:
+            await self.redis_storage.delete_from_cache(child_id)
+
+    async def get_all_children_ids(self, item_id, pydantic_model=Category):
+        async def traverse_children(node: pydantic_model):
+            if children := node.children_ids:
+                for child_id in children:
+                    child_data = await self.redis_storage.get_from_cache(child_id, model=pydantic_model)
+                    if child_data:
+                        children_ids.append(child_data.id)
+                        await traverse_children(child_data)
+
+        children_ids = [item_id]
+        item_data = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
+        if item_data:
+            await traverse_children(item_data)
+        return children_ids
 
 
 @lru_cache()
