@@ -32,6 +32,7 @@ async def save_to_redis(
 
 @router.get(
     '/category-tree',
+    response_model=List[List[Category]]
 )
 async def get_category_tree(
     base_service: CategoryService = Depends(get_base_service),
