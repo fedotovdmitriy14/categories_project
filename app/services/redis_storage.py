@@ -21,3 +21,7 @@ class RedisStorage(AbstractStorage):
         """кладем запись в кеш"""
         data_json = json.dumps(validated_data.dict(), default=custom_json_encoder).encode('utf-8')
         await self.redis.set(item_id, data_json)
+
+    async def delete_from_cache(self, item_id: int) -> None:
+        """удаляем из кэша"""
+        await self.redis.delete(item_id)

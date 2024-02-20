@@ -45,6 +45,17 @@ async def get_one_category(
     return res
 
 
+@router.delete(
+    '/{id}',
+)
+async def delete_category(
+    base_service: BaseService = Depends(get_base_service),
+    id_: int = Path(alias='id'),
+):
+    await base_service.delete(item_id=id_)
+    return {'message': 'ok'}
+
+
 @router.post(
     '/redis',
 )

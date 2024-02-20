@@ -18,10 +18,10 @@ class AsyncSearchEngine(ABC):
     async def save(self, *args, **kwargs):
         pass
 
-    # @abstractmethod
-    # async def delete(self, *args, **kwargs):
-    #     pass
-    #
+    @abstractmethod
+    async def delete(self, *args, **kwargs):
+        pass
+
     @abstractmethod
     async def update(self, *args, **kwargs):
         pass
