@@ -141,6 +141,19 @@ class BaseService(AsyncSearchEngine):
                 categories.append(data)
         return categories
 
+    async def get_category_and_parents(self, item_id: int):
+        parents = []
+
+        async def find_parents(item_id):
+            category_data = await self.redis_storage.get_from_cache(item_id, Category)
+            if category_data:
+                parents.append(category_data)
+                if category_data.parent_id:
+                    await find_parents(category_data.parent_id)
+
+        await find_parents(item_id)
+        return parents
+
 
 @lru_cache()
 def get_base_service(
