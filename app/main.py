@@ -36,3 +36,8 @@ app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 @app.get("/front")
 async def get_index(request: Request):
     return FileResponse("app/static/front.html")
+
+
+@app.get("/tree")
+async def get_index(request: Request):
+    return FileResponse("app/static/tree.html")

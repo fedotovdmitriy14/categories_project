@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Tree</title>
+    <style>
+        /* Add CSS styles for indentation */
+        ul {
+            list-style-type: none;
+            padding-left: 20px; /* Adjust the indentation size as needed */
+        }
+
+        ul ul {
+            padding-left: 20px; /* Additional indentation for subcategories */
+        }
+    </style>
+</head>
+<body>
+    <h1>Category Tree</h1>
+    <div id="categoryTree"></div>
+
+    <script>
+        async function fetchCategoryTree() {
+            const response = await fetch('http://0.0.0.0:8080/api/v1/categories/category-tree');
+            const data = await response.json();
+            return data;
+        }
+
+        async function renderCategoryTree() {
+            const categoryTree = await fetchCategoryTree();
+            const categoryTreeElement = document.getElementById('categoryTree');
+
+            categoryTree.forEach(tree => {
+                const treeElement = document.createElement('ul');
+                tree.forEach(category => {
+                    const categoryElement = document.createElement('li');
+                    categoryElement.textContent = category.name;
+                    treeElement.appendChild(categoryElement);
+
+                    if (category.children_ids.length > 0) {
+                        const subcategoriesElement = document.createElement('ul');
+                        category.children_ids.forEach(childId => {
+                            const childCategory = categoryTree.find(cat => cat.id === childId);
+                            if (childCategory) {
+                                const subcategoryElement = document.createElement('li');
+                                subcategoryElement.textContent = childCategory.name;
+                                subcategoriesElement.appendChild(subcategoryElement);
+                            }
+                        });
+                        categoryElement.appendChild(subcategoriesElement);
+                    }
+                });
+                categoryTreeElement.appendChild(treeElement);
+            });
+        }
+
+        renderCategoryTree();
+    </script>
+</body>
+</html>
