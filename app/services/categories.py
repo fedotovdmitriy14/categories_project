@@ -42,6 +42,7 @@ class BaseService(AsyncSearchEngine):
         self.db.add(data_to_insert)
         self.db.flush()
         self.db.commit()
+        validated_data.id = data_to_insert.id  # добавляем id, созданный sql
         await self.redis_storage.put_to_cache(validated_data=validated_data, item_id=data_to_insert.id)
 
     async def save_child(self, name: str, parent_id: int, sql_model=Categories, pydantic_model=Category):
@@ -62,6 +63,7 @@ class BaseService(AsyncSearchEngine):
             flag_modified(selected_category, 'children_ids')  # иначе алхимия не увидит изменения в массиве
             self.db.add(selected_category)
             self.db.commit()
+            validated_data.id = data_to_insert.id  # добавляем id, созданный sql
             await self.redis_storage.put_to_cache(validated_data=validated_data, item_id=data_to_insert.id)
             parent_data = pydantic_model.from_orm(selected_category)
             await self.redis_storage.put_to_cache(
@@ -129,6 +131,15 @@ class BaseService(AsyncSearchEngine):
         if item_data:
             await traverse_children(item_data)
         return children_ids
+
+    async def get_all_from_redis(self, pydantic_model=Category):
+        categories = []
+        keys = await self.redis.keys('*')
+        for key in keys:
+            data = await self.redis_storage.get_from_cache(key, pydantic_model)
+            if data:
+                categories.append(data)
+        return categories
 
 
 @lru_cache()
