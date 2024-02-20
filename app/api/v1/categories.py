@@ -53,7 +53,7 @@ async def get_all_categories(
     '/{id}',
 )
 async def update_category(
-    name: str = Body(...),
+    name: str = Body(..., embed=True),
     base_service: CategoryService = Depends(get_base_service),
     id_: int = Path(alias='id'),
 ) -> Dict[str, str]:
