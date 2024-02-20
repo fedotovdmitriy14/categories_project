@@ -34,6 +34,7 @@ async def shutdown():
 app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
+
 @app.get("/tree")
 async def get_index(request: Request):
     return FileResponse("app/static/tree.html")

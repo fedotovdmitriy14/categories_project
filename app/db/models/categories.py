@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, JSON
+from sqlalchemy import JSON, Column, DateTime, Integer, String
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -8,7 +8,7 @@ class Categories(Base):
     __tablename__ = 'categories'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(50))
+    name = Column(String(50), unique=True)
     level = Column(Integer)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
