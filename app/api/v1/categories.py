@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from fastapi import APIRouter, Depends, Body, Path
 
@@ -34,7 +34,7 @@ async def update_category(
 
 @router.get(
     '/{id}',
-    # response_model=Category,
+    response_model=List[Category],
 )
 async def get_one_category(
     base_service: BaseService = Depends(get_base_service),
