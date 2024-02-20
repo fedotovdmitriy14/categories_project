@@ -3,9 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create New Category</title>
+    <title>Category Tree</title>
+    <style>
+        ul {
+            list-style-type: none;
+        }
+
+        ul ul {
+            padding-left: 20px;
+        }
+    </style>
 </head>
 <body>
+    <h1>Category Tree</h1>
+    <div id="categoryTree"></div>
+
     <h1>Create New Category</h1>
     <form id="categoryForm">
         <!-- Parent ID dropdown (optional) -->
@@ -21,7 +33,6 @@
     </form>
 
     <script>
-        // Function to fetch categories and populate the dropdown
         async function fetchCategoriesAndPopulateDropdown() {
             try {
                 const response = await fetch('http://0.0.0.0:8080/api/v1/categories');
@@ -45,7 +56,6 @@
             }
         }
 
-        // Call the function to fetch categories when the page loads
         document.addEventListener('DOMContentLoaded', fetchCategoriesAndPopulateDropdown);
 
         document.getElementById('categoryForm').addEventListener('submit', async function(event) {
@@ -82,6 +92,49 @@
                 alert('Failed to create category');
             }
         });
+
+        async function fetchCategoryTree() {
+            const response = await fetch('http://0.0.0.0:8080/api/v1/categories/category-tree');
+            const data = await response.json();
+            return data;
+        }
+
+        async function renderCategoryTree() {
+            const categoryTree = await fetchCategoryTree();
+            const categoryTreeElement = document.getElementById('categoryTree');
+
+            categoryTree.forEach(tree => {
+                const treeElement = document.createElement('ul');
+                tree.forEach(category => {
+                    const categoryElement = document.createElement('li');
+                    const categoryLink = document.createElement('a');
+                    categoryLink.href = `http://0.0.0.0:8080/single_category/${category.id}`;
+                    categoryLink.textContent = category.name;
+                    categoryElement.appendChild(categoryLink);
+                    categoryElement.style.marginLeft = category.level * 20 + 'px';
+                    treeElement.appendChild(categoryElement);
+
+                    if (category.children_ids.length > 0) {
+                        const subcategoriesElement = document.createElement('ul');
+                        category.children_ids.forEach(childId => {
+                            const childCategory = categoryTree.find(cat => cat.id === childId);
+                            if (childCategory) {
+                                const subcategoryElement = document.createElement('li');
+                                const subcategoryLink = document.createElement('a');
+                                subcategoryLink.href = `http://0.0.0.0:8080/single_category/${childCategory.id}`;
+                                subcategoryLink.textContent = childCategory.name;
+                                subcategoryElement.appendChild(subcategoryLink);
+                                subcategoriesElement.appendChild(subcategoryElement);
+                            }
+                        });
+                        categoryElement.appendChild(subcategoriesElement);
+                    }
+                });
+                categoryTreeElement.appendChild(treeElement);
+            });
+        }
+
+        renderCategoryTree();
     </script>
 </body>
 </html>

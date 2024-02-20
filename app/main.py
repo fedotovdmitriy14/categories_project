@@ -1,7 +1,8 @@
 import aioredis
 from fastapi import FastAPI, Request
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, HTMLResponse
 from starlette.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
 from app import redis
 from app.api.v1 import categories
@@ -31,8 +32,15 @@ async def shutdown():
 
 
 app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
+templates = Jinja2Templates(directory="app/templates")
 
-
-@app.get("/front")
+@app.get("/tree")
 async def get_index(request: Request):
-    return FileResponse("app/static/front.html")
+    return FileResponse("app/static/tree.html")
+
+
+@app.get("/single_category/{id}", response_class=HTMLResponse)
+async def read_item(request: Request, id: str):
+    return templates.TemplateResponse(
+        request=request, name="single_category.html", context={"id": id}
+    )

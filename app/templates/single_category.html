@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Tree</title>
+    <style>
+        /* Add CSS styles for indentation */
+        ul {
+            list-style-type: none;
+        }
+
+        ul ul {
+            padding-left: 20px; /* Additional indentation for subcategories */
+        }
+    </style>
+</head>
+<body>
+    <h1>Category Tree</h1>
+    <div id="categoryTree"></div>
+    <button id="deleteButton">Delete Current Category</button>
+    <button id="updateButton">Update Current Category Name</button>
+
+    <script>
+        async function fetchCategories(id) {
+            const response = await fetch(`http://0.0.0.0:8080/api/v1/categories/${id}`);
+            const data = await response.json();
+            return data;
+        }
+
+        async function deleteCategory(categoryId) {
+            await fetch(`http://0.0.0.0:8080/api/v1/categories/${categoryId}`, {
+                method: 'DELETE'
+            });
+            // After deleting, you might want to reload the category tree
+            renderCategoryTree();
+        }
+
+        async function updateCategoryName(categoryId, newName) {
+            await fetch(`http://0.0.0.0:8080/api/v1/categories/${categoryId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName })
+            });
+            // After updating, you might want to reload the category tree
+            renderCategoryTree();
+        }
+
+        async function renderCategoryTree() {
+            const categoryId = window.location.pathname.split('/').pop();
+            const categories = await fetchCategories(categoryId);
+            const categoryTreeElement = document.getElementById('categoryTree');
+            const sortedCategories = categories.sort((a, b) => a.level - b.level);
+
+            categoryTreeElement.innerHTML = ''; // Clear existing tree
+
+            sortedCategories.forEach(category => {
+                const categoryElement = document.createElement('ul');
+                const categoryLi = document.createElement('li');
+                categoryLi.textContent = category.name;
+                categoryElement.appendChild(categoryLi);
+
+                // Add indentation based on the category's level
+                categoryElement.style.marginLeft = (category.level - 1) * 20 + 'px';
+
+                categoryTreeElement.appendChild(categoryElement);
+            });
+
+            // Attach event listeners to the buttons
+            document.getElementById('deleteButton').addEventListener('click', () => {
+                deleteCategory(categoryId);
+            });
+
+            document.getElementById('updateButton').addEventListener('click', () => {
+                const newName = prompt('Enter new category name:');
+                if (newName) {
+                    updateCategoryName(categoryId, newName);
+                }
+            });
+        }
+
+        renderCategoryTree();
+    </script>
+</body>
+</html>
