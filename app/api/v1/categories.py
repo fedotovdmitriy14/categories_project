@@ -40,9 +40,7 @@ async def get_one_category(
     base_service: BaseService = Depends(get_base_service),
     id_: int = Path(alias='id'),
 ):
-    res = await base_service.get_category_and_parents(item_id=id_)
-    print(f'{res=}')
-    return res
+    return await base_service.get_category_and_parents(item_id=id_)
 
 
 @router.delete(
