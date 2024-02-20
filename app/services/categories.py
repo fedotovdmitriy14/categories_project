@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from functools import lru_cache
-from typing import Optional, List, Dict
+from typing import Optional
 
 from aioredis import Redis
 from fastapi import Depends
