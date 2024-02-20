@@ -32,7 +32,7 @@ services:
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     volumes:
-      - ../redis_data:/data
+      - ./redis_data:/data
     ports:
       - "6379:6379"
 
