@@ -1,7 +1,6 @@
-import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Optional, Dict
+from typing import Optional
 
 from aioredis import Redis
 from fastapi import Depends
@@ -12,7 +11,6 @@ from app.db.models.categories import Categories
 from app.redis import get_redis
 from app.schemas.categories import Category
 from app.services import AsyncSearchEngine
-from app.services.helpers import custom_json_encoder
 from app.services.redis_storage import RedisStorage
 
 
@@ -72,6 +70,19 @@ class BaseService(AsyncSearchEngine):
             await self.save_top_parent(name=name, sql_model=sql_model, pydantic_model=pydantic_model)
         else:
             await self.save_child(name=name, parent_id=parent_id, sql_model=sql_model, pydantic_model=pydantic_model)
+
+    async def update(self, item_id: int, name: str, sql_model=Categories, pydantic_model=Category):
+        if category := self.get_one(item_id=item_id, sql_model=sql_model):
+            category.name = name
+            self.db.add(category)
+            self.db.commit()  # TODO: добавить исключение
+            await self.redis_storage.put_to_cache(
+                validated_data=pydantic_model.from_orm(category),
+                item_id=category.id,
+            )
+
+    def get_one(self, item_id: int, sql_model=Categories):
+        return self.db.query(Categories).filter(Categories.id == item_id).first()
 
 
 @lru_cache()
