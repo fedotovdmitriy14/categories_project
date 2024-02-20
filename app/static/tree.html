@@ -8,7 +8,6 @@
         /* Add CSS styles for indentation */
         ul {
             list-style-type: none;
-            padding-left: 20px; /* Adjust the indentation size as needed */
         }
 
         ul ul {
@@ -36,6 +35,7 @@
                 tree.forEach(category => {
                     const categoryElement = document.createElement('li');
                     categoryElement.textContent = category.name;
+                    categoryElement.style.marginLeft = category.level * 20 + 'px'; // Adjust the indentation size as needed
                     treeElement.appendChild(categoryElement);
 
                     if (category.children_ids.length > 0) {
