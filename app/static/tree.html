@@ -34,7 +34,10 @@
                 const treeElement = document.createElement('ul');
                 tree.forEach(category => {
                     const categoryElement = document.createElement('li');
-                    categoryElement.textContent = category.name;
+                    const categoryLink = document.createElement('a');
+                    categoryLink.href = `http://0.0.0.0:8080/api/v1/categories/${category.id}`;
+                    categoryLink.textContent = category.name;
+                    categoryElement.appendChild(categoryLink);
                     categoryElement.style.marginLeft = category.level * 20 + 'px'; // Adjust the indentation size as needed
                     treeElement.appendChild(categoryElement);
 
@@ -44,7 +47,10 @@
                             const childCategory = categoryTree.find(cat => cat.id === childId);
                             if (childCategory) {
                                 const subcategoryElement = document.createElement('li');
-                                subcategoryElement.textContent = childCategory.name;
+                                const subcategoryLink = document.createElement('a');
+                                subcategoryLink.href = `http://0.0.0.0:8080/api/v1/categories/${childCategory.id}`;
+                                subcategoryLink.textContent = childCategory.name;
+                                subcategoryElement.appendChild(subcategoryLink);
                                 subcategoriesElement.appendChild(subcategoryElement);
                             }
                         });
