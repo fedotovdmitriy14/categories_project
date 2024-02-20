@@ -149,7 +149,7 @@ class CategoryService(AsyncSearchEngine):
         return []
 
     async def get_categories_as_tree(self, pydantic_model=Category):
-        top_nodes = await self.get_top_tree_nodes()
+        top_nodes = await self.get_top_tree_nodes()  # TODO: перенести в редис
         trees = []
         for top_node in top_nodes:
             tree = await self.get_all_children(top_node.id, pydantic_model)
