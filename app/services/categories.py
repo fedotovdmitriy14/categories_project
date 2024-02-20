@@ -18,7 +18,7 @@ from app.services.redis_storage import RedisStorage
 logger = logging.getLogger(__name__)
 
 
-class BaseService(AsyncSearchEngine):
+class CategoryService(AsyncSearchEngine):
     def __init__(self, redis: Redis, db: SessionLocal):
         self.redis = redis
         self.db = db
@@ -92,7 +92,6 @@ class BaseService(AsyncSearchEngine):
 
     async def get_one_from_redis(self, item_id: int, pydantic_model=Category):
         item = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
-        print(f'{item=}')
         return item
 
     def get_all(self):
@@ -132,6 +131,34 @@ class BaseService(AsyncSearchEngine):
             await traverse_children(item_data)
         return children_ids
 
+    async def get_all_children(self, item_id, pydantic_model=Category):
+        async def traverse_children(node: pydantic_model):
+            children = []
+            if node.children_ids:
+                for child_id in node.children_ids:
+                    child_data = await self.redis_storage.get_from_cache(child_id, model=pydantic_model)
+                    if child_data:
+                        children.append(child_data)
+                        children.extend(await traverse_children(child_data))
+            return children
+
+        item_data = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
+        if item_data:
+            children = await traverse_children(item_data)
+            return [item_data] + children
+        return []
+
+    async def get_categories_as_tree(self, pydantic_model=Category):
+        top_nodes = await self.get_top_tree_nodes()
+        trees = []
+        for top_node in top_nodes:
+            tree = await self.get_all_children(top_node.id, pydantic_model)
+            trees.append(tree)
+        return trees
+
+    async def get_top_tree_nodes(self, sql_model=Categories):
+        return self.db.query(sql_model).filter(sql_model.parent_id.is_(None)).all()
+
     async def get_all_from_redis(self, pydantic_model=Category):
         categories = []
         keys = await self.redis.keys('*')
@@ -159,5 +186,5 @@ class BaseService(AsyncSearchEngine):
 def get_base_service(
     redis: Redis = Depends(get_redis),
     db: SessionLocal = Depends(get_db),
-) -> BaseService:
-    return BaseService(redis=redis, db=db)
+) -> CategoryService:
+    return CategoryService(redis=redis, db=db)
