@@ -34,13 +34,13 @@ async def update_category(
 
 @router.get(
     '/{id}',
-    response_model=Category,
+    # response_model=Category,
 )
 async def get_one_category(
     base_service: BaseService = Depends(get_base_service),
     id_: int = Path(alias='id'),
 ):
-    res = await base_service.get_one_from_redis(item_id=id_)
+    res = await base_service.get_category_and_parents(item_id=id_)
     print(f'{res=}')
     return res
 
