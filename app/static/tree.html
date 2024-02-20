@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Category Tree</title>
     <style>
-        /* Add CSS styles for indentation */
         ul {
             list-style-type: none;
         }
 
         ul ul {
-            padding-left: 20px; /* Additional indentation for subcategories */
+            padding-left: 20px;
         }
     </style>
 </head>
@@ -35,10 +34,10 @@
                 tree.forEach(category => {
                     const categoryElement = document.createElement('li');
                     const categoryLink = document.createElement('a');
-                    categoryLink.href = `http://0.0.0.0:8080/single_category.html?id=${category.id}`;
+                    categoryLink.href = `http://0.0.0.0:8080/single_category/${category.id}`;
                     categoryLink.textContent = category.name;
                     categoryElement.appendChild(categoryLink);
-                    categoryElement.style.marginLeft = category.level * 20 + 'px'; // Adjust the indentation size as needed
+                    categoryElement.style.marginLeft = category.level * 20 + 'px';
                     treeElement.appendChild(categoryElement);
 
                     if (category.children_ids.length > 0) {
@@ -48,7 +47,7 @@
                             if (childCategory) {
                                 const subcategoryElement = document.createElement('li');
                                 const subcategoryLink = document.createElement('a');
-                                subcategoryLink.href = `http://0.0.0.0:8080/single_category.html?id=${childCategory.id}`;
+                                subcategoryLink.href = `http://0.0.0.0:8080/single_category/${childCategory.id}`;
                                 subcategoryLink.textContent = childCategory.name;
                                 subcategoryElement.appendChild(subcategoryLink);
                                 subcategoriesElement.appendChild(subcategoryElement);
