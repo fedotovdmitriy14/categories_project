@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Category</title>
+    <style>
+        /* Add CSS styles for indentation */
+        ul {
+            list-style-type: none;
+        }
+
+        ul ul {
+            padding-left: 20px; /* Additional indentation for subcategories */
+        }
+    </style>
+</head>
+<body>
+    <h1>Single Category</h1>
+    <div id="categoryTree"></div>
+
+    <script>
+        async function fetchCategory(id) {
+            const response = await fetch(`http://0.0.0.0:8080/api/v1/categories/${id}`);
+            const data = await response.json();
+            return data;
+        }
+
+        async function renderCategory() {
+            // Extract category ID from the URL
+            const categoryId = window.location.pathname.split('/').pop();
+            const category = await fetchCategory(categoryId);
+            const categoryTreeElement = document.getElementById('categoryTree');
+
+            renderCategoryRecursive(category, categoryTreeElement);
+        }
+
+        async function renderCategoryRecursive(category, parentElement) {
+            const categoryElement = document.createElement('ul');
+            const categoryLi = document.createElement('li');
+            categoryLi.textContent = category.name;
+            categoryElement.appendChild(categoryLi);
+
+            if (category.children_ids.length > 0) {
+                const subcategoriesElement = document.createElement('ul');
+                for (const childId of category.children_ids) {
+                    const childCategory = await fetchCategory(childId);
+                    renderCategoryRecursive(childCategory, subcategoriesElement);
+                }
+                categoryElement.appendChild(subcategoriesElement);
+            }
+
+            parentElement.appendChild(categoryElement);
+        }
+
+        renderCategory();
+    </script>
+</body>
+</html>
