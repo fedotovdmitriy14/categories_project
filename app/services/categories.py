@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Dict
 
 from aioredis import Redis
 from fastapi import Depends
@@ -13,52 +13,65 @@ from app.redis import get_redis
 from app.schemas.categories import Category
 from app.services import AsyncSearchEngine
 from app.services.helpers import custom_json_encoder
+from app.services.redis_storage import RedisStorage
 
 
 class BaseService(AsyncSearchEngine):
     def __init__(self, redis: Redis, db: SessionLocal):
         self.redis = redis
         self.db = db
+        self.redis_storage = RedisStorage(redis=self.redis)
 
-    async def save(self, name: str, parent_id: Optional[int]):
-        if not parent_id:
-            validated_data = Category(
+    # def _validate_data(self, model: Categories, pydantic_schema: Category, data: Dict[str, str]) -> Category:
+    #     """Валидирует данные в pydantic и переводит в модель sqlalchemy."""
+    #     validated_schema = pydantic_schema(**data)
+    #     return model(**validated_schema.dict())
+
+    async def save_top_parent(self, name: str, sql_model=Categories, pydantic_model=Category):
+        validated_data = pydantic_model(
+            name=name,
+            level=1,
+            children_ids=[],
+            parent_id=None,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        data_to_insert = sql_model(**validated_data.dict())
+        self.db.add(data_to_insert)
+        self.db.flush()
+        self.db.commit()
+        await self.redis_storage.put_to_cache(validated_data=validated_data, item_id=data_to_insert.id)
+
+    async def save_child(self, name: str, parent_id: int, sql_model=Categories, pydantic_model=Category):
+        selected_category = self.db.query(Categories).filter(Categories.id == parent_id).first()
+        if selected_category:
+            validated_data = pydantic_model(
                 name=name,
-                level=1,
                 children_ids=[],
-                parent_id=None,
+                level=selected_category.level + 1,
+                parent_id=selected_category.id,
                 created_at=datetime.now(),
                 updated_at=datetime.now(),
             )
-            data_to_insert = Categories(**validated_data.dict())
+            data_to_insert = sql_model(**validated_data.dict())
             self.db.add(data_to_insert)
-            self.db.flush()
+            self.db.flush()  # получить айди без коммита транзакции
+            selected_category.children_ids.append(data_to_insert.id)
+            flag_modified(selected_category, 'children_ids')  # иначе алхимия не увидит изменения в массиве
+            self.db.add(selected_category)
             self.db.commit()
-            data_json = json.dumps(validated_data.dict(), default=custom_json_encoder).encode('utf-8')
-            await self.redis.set(validated_data.id, data_json)
+            await self.redis_storage.put_to_cache(validated_data=validated_data, item_id=data_to_insert.id)
+            parent_data = pydantic_model.from_orm(selected_category)
+            await self.redis_storage.put_to_cache(
+                validated_data=parent_data,
+                item_id=parent_data.id,
+            )
+
+    async def save(self, name: str, parent_id: Optional[int], sql_model=Categories, pydantic_model=Category):
+        if not parent_id:
+            await self.save_top_parent(name=name, sql_model=sql_model, pydantic_model=pydantic_model)
         else:
-            selected_category = self.db.query(Categories).filter(Categories.id == parent_id).first()
-            if selected_category:
-                validated_data = Category(
-                    name=name,
-                    children_ids=[],
-                    level=selected_category.level + 1,
-                    parent_id=selected_category.id,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now(),
-                )
-                data_to_insert = Categories(**validated_data.dict())
-                self.db.add(data_to_insert)
-                self.db.flush()
-                selected_category.children_ids.append(data_to_insert.id)
-                flag_modified(selected_category, 'children_ids')
-                self.db.add(selected_category)
-                self.db.commit()
-                data_json = json.dumps(validated_data.dict(), default=custom_json_encoder).encode('utf-8')
-                parent_data = Category.from_orm(selected_category)
-                selected_category_json = json.dumps(parent_data.dict(), default=custom_json_encoder).encode('utf-8')
-                await self.redis.set(data_to_insert.id, data_json)
-                await self.redis.set(selected_category.id, selected_category_json)
+            await self.save_child(name=name, parent_id=parent_id, sql_model=sql_model, pydantic_model=pydantic_model)
 
 
 @lru_cache()

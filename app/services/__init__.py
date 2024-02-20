@@ -1,4 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import Dict, List
+
+
+class AbstractStorage(ABC):
+    @abstractmethod
+    async def get_from_cache(self, *args, **kwargs) -> Dict[str, List[str]]:
+        pass
+
+    @abstractmethod
+    async def put_to_cache(self, *args, **kwargs) -> None:
+        pass
 
 
 class AsyncSearchEngine(ABC):
