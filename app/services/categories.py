@@ -84,6 +84,19 @@ class BaseService(AsyncSearchEngine):
     def get_one(self, item_id: int, sql_model=Categories):
         return self.db.query(Categories).filter(Categories.id == item_id).first()
 
+    def get_all(self):
+        return self.db.query(Categories).all()
+
+    async def save_categories_to_redis(self, pydantic_model=Category):
+        categories = self.get_all()
+
+        for category in categories:
+            parent_data = pydantic_model.from_orm(category)
+            await self.redis_storage.put_to_cache(
+                validated_data=parent_data,
+                item_id=parent_data.id,
+            )
+
 
 @lru_cache()
 def get_base_service(

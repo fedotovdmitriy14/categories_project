@@ -31,6 +31,16 @@ async def update_category(
     return {'message': 'ok'}
 
 
+@router.post(
+    '/redis',
+)
+async def save_to_redis(
+    base_service: BaseService = Depends(get_base_service),
+) -> Dict[str, str]:
+    await base_service.save_categories_to_redis()
+    return {'message': 'ok'}
+
+
 @router.get(
     '/',
 )
