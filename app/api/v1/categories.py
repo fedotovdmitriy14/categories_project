@@ -1,9 +1,9 @@
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, Body, Path
+from fastapi import APIRouter, Body, Depends, Path
 
 from app.schemas.categories import Category
-from app.services.categories import get_base_service, CategoryService
+from app.services.categories import CategoryService, get_base_service
 
 router = APIRouter()
 
@@ -46,7 +46,7 @@ async def get_category_tree(
 async def get_all_categories(
     base_service: CategoryService = Depends(get_base_service),
 ):
-    return await base_service.get_all_from_redis()
+    return await base_service.get_all_items_from_redis()
 
 
 @router.put(
@@ -78,6 +78,6 @@ async def get_one_category(
 async def delete_category(
     base_service: CategoryService = Depends(get_base_service),
     id_: int = Path(alias='id'),
-):
+) -> Dict[str, str]:
     await base_service.delete(item_id=id_)
     return {'message': 'ok'}

@@ -14,22 +14,18 @@ from app.schemas.categories import Category
 from app.services import AsyncSearchEngine
 from app.services.redis_storage import RedisStorage
 
-
 logger = logging.getLogger(__name__)
 
 
 class CategoryService(AsyncSearchEngine):
+    """Класс для работы с категориями."""
     def __init__(self, redis: Redis, db: SessionLocal):
         self.redis = redis
         self.db = db
         self.redis_storage = RedisStorage(redis=self.redis)
 
-    # def _validate_data(self, model: Categories, pydantic_schema: Category, data: Dict[str, str]) -> Category:
-    #     """Валидирует данные в pydantic и переводит в модель sqlalchemy."""
-    #     validated_schema = pydantic_schema(**data)
-    #     return model(**validated_schema.dict())
-
     async def save_top_parent(self, name: str, sql_model=Categories, pydantic_model=Category):
+        """Сохранить родителя на вершине дерева."""
         validated_data = pydantic_model(
             name=name,
             level=1,
@@ -46,6 +42,7 @@ class CategoryService(AsyncSearchEngine):
         await self.redis_storage.put_to_cache(validated_data=validated_data, item_id=data_to_insert.id)
 
     async def save_child(self, name: str, parent_id: int, sql_model=Categories, pydantic_model=Category):
+        """Сохранить потомка."""
         selected_category = self.db.query(Categories).filter(Categories.id == parent_id).first()
         if selected_category:
             validated_data = pydantic_model(
@@ -72,12 +69,14 @@ class CategoryService(AsyncSearchEngine):
             )
 
     async def save(self, name: str, parent_id: Optional[int], sql_model=Categories, pydantic_model=Category):
+        """Сохранить новую категорию."""
         if not parent_id:
             await self.save_top_parent(name=name, sql_model=sql_model, pydantic_model=pydantic_model)
         else:
             await self.save_child(name=name, parent_id=parent_id, sql_model=sql_model, pydantic_model=pydantic_model)
 
     async def update(self, item_id: int, name: str, sql_model=Categories, pydantic_model=Category):
+        """Обновить категорию."""
         if category := self.get_one(item_id=item_id, sql_model=sql_model):
             category.name = name
             self.db.add(category)
@@ -88,16 +87,19 @@ class CategoryService(AsyncSearchEngine):
             )
 
     def get_one(self, item_id: int, sql_model=Categories):
+        """Получить запись из бд."""
         return self.db.query(Categories).filter(Categories.id == item_id).first()
 
     async def get_one_from_redis(self, item_id: int, pydantic_model=Category):
-        item = await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
-        return item
+        """Получить запись из редиса."""
+        return await self.redis_storage.get_from_cache(item_id, model=pydantic_model)
 
     def get_all(self):
+        """Получить все записи из бд."""
         return self.db.query(Categories).all()
 
     async def save_categories_to_redis(self, pydantic_model=Category):
+        """Сохранить все категории в редис."""
         categories = self.get_all()
 
         for category in categories:
@@ -108,6 +110,7 @@ class CategoryService(AsyncSearchEngine):
             )
 
     async def delete(self, item_id: int, pydantic_model=Category):
+        """Удалить из редиса и бд."""
         children_ids = await self.get_all_children_ids(item_id=item_id, pydantic_model=Category)
         for child_id in children_ids:
             self.db.query(Categories).filter(Categories.id == child_id).delete()
@@ -117,6 +120,7 @@ class CategoryService(AsyncSearchEngine):
             await self.redis_storage.delete_from_cache(child_id)
 
     async def get_all_children_ids(self, item_id, pydantic_model=Category):
+        """Получить все id потомков."""
         async def traverse_children(node: pydantic_model):
             if children := node.children_ids:
                 for child_id in children:
@@ -132,6 +136,7 @@ class CategoryService(AsyncSearchEngine):
         return children_ids
 
     async def get_all_children(self, item_id, pydantic_model=Category):
+        """Получить всех потомков."""
         async def traverse_children(node: pydantic_model):
             children = []
             if node.children_ids:
@@ -149,6 +154,7 @@ class CategoryService(AsyncSearchEngine):
         return []
 
     async def get_categories_as_tree(self, pydantic_model=Category):
+        """Получить все категории в виде дерева."""
         top_nodes = await self.get_top_tree_nodes()  # TODO: перенести в редис
         trees = []
         for top_node in top_nodes:
@@ -157,9 +163,11 @@ class CategoryService(AsyncSearchEngine):
         return trees
 
     async def get_top_tree_nodes(self, sql_model=Categories):
+        """Получить вершины всех деревьев."""
         return self.db.query(sql_model).filter(sql_model.parent_id.is_(None)).all()
 
-    async def get_all_from_redis(self, pydantic_model=Category):
+    async def get_all_items_from_redis(self, pydantic_model=Category):
+        """Получить все записи из редиса."""
         categories = []
         keys = await self.redis.keys('*')
         for key in keys:
@@ -169,6 +177,7 @@ class CategoryService(AsyncSearchEngine):
         return categories
 
     async def get_category_and_parents(self, item_id: int):
+        """Получить категорию и ее предков."""
         parents = []
 
         async def find_parents(item_id):
