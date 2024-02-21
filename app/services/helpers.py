@@ -6,3 +6,9 @@ def custom_json_encoder(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+class CustomException(Exception):
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message

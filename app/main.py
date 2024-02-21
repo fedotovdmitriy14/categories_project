@@ -1,12 +1,13 @@
 import aioredis
 from fastapi import FastAPI, Request
-from starlette.responses import FileResponse, HTMLResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from app import redis
 from app.api.v1 import categories
 from app.constants import settings
+from app.services.helpers import CustomException
 
 app = FastAPI(
     title='Categories API',
@@ -44,4 +45,12 @@ async def get_index(request: Request):
 async def read_item(request: Request, id: str):
     return templates.TemplateResponse(
         request=request, name="single_category.html", context={"id": id}
+    )
+
+
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.code,
+        content={"message": exc.message, "code": exc.code}
     )

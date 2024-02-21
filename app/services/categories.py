@@ -5,6 +5,7 @@ from typing import Optional
 
 from aioredis import Redis
 from fastapi import Depends
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.db.engine import SessionLocal, get_db
@@ -12,6 +13,7 @@ from app.db.models.categories import Categories
 from app.redis import get_redis
 from app.schemas.categories import Category
 from app.services import AsyncSearchEngine
+from app.services.helpers import CustomException
 from app.services.redis_storage import RedisStorage
 
 logger = logging.getLogger(__name__)
@@ -88,7 +90,12 @@ class CategoryService(AsyncSearchEngine):
 
     def get_one(self, item_id: int, sql_model=Categories):
         """Получить запись из бд."""
-        return self.db.query(Categories).filter(Categories.id == item_id).first()
+        try:
+            item = self.db.query(Categories).filter(Categories.id == item_id).first()
+        except NoResultFound as error:
+            logger.error(f"Не найдено результатов: {error}")
+            raise CustomException(message="Не найдено результатов", code=404)
+        return item
 
     async def get_one_from_redis(self, item_id: int, pydantic_model=Category):
         """Получить запись из редиса."""
@@ -96,7 +103,12 @@ class CategoryService(AsyncSearchEngine):
 
     def get_all(self):
         """Получить все записи из бд."""
-        return self.db.query(Categories).all()
+        try:
+            items = self.db.query(Categories).all()
+        except NoResultFound as error:
+            logger.error(f"Не найдено результатов: {error}")
+            raise CustomException(message="Не найдено результатов", code=404)
+        return items
 
     async def save_categories_to_redis(self, pydantic_model=Category):
         """Сохранить все категории в редис."""
